@@ -39,7 +39,51 @@ function App() {
     disposable: 0
   })
   const [showConfetti, setShowConfetti] = useState(false)
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const [particles, setParticles] = useState<any[]>([])
   const resultRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Mouse move effect for dynamic background
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY })
+    }
+    
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [])
+
+  // Particle system for dynamic background
+  useEffect(() => {
+    const generateParticles = () => {
+      const newParticles = []
+      for (let i = 0; i < 30; i++) {
+        newParticles.push({
+          id: i,
+          x: Math.random() * 100,
+          y: Math.random() * 100,
+          size: Math.random() * 4 + 1,
+          speed: Math.random() * 2 + 0.5,
+          opacity: Math.random() * 0.5 + 0.1
+        })
+      }
+      setParticles(newParticles)
+    }
+    
+    generateParticles()
+    
+    // Animate particles
+    const interval = setInterval(() => {
+      setParticles(prev => prev.map(particle => ({
+        ...particle,
+        y: particle.y > 100 ? 0 : particle.y + particle.speed * 0.1,
+        x: particle.x + Math.sin(particle.y * 0.01) * 0.2
+      })))
+    }, 50)
+    
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     // Load history from localStorage
@@ -84,6 +128,11 @@ function App() {
       ...formData,
       [e.target.name]: e.target.value
     })
+    
+    // Add ripple effect on input change
+    const input = e.target
+    input.classList.add('input-ripple')
+    setTimeout(() => input.classList.remove('input-ripple'), 300)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,6 +141,11 @@ function App() {
     setError('')
     setResult(null)
     setAnimatedValues({confidence: 0, risk: 0, emi: 0, disposable: 0})
+
+    // Add form submission animation
+    const form = e.target as HTMLFormElement
+    form.classList.add('form-submitting')
+    setTimeout(() => form.classList.remove('form-submitting'), 1000)
 
     try {
       // Use environment variable for API URL, fallback to localhost for development
@@ -379,6 +433,34 @@ function App() {
 
   return (
     <div className="app">
+      {/* Dynamic particle background */}
+      <div className="particles-container">
+        {particles.map(particle => (
+          <div
+            key={particle.id}
+            className="particle"
+            style={{
+              left: `${particle.x}%`,
+              top: `${particle.y}%`,
+              width: `${particle.size}px`,
+              height: `${particle.size}px`,
+              opacity: particle.opacity,
+              transform: `translate(${Math.sin(particle.y * 0.02) * 10}px, 0)`,
+              background: `radial-gradient(circle, rgba(255,255,255,${particle.opacity}) 0%, rgba(255,255,255,0) 70%)`
+            }}
+          />
+        ))}
+      </div>
+      
+      {/* Mouse follower effect */}
+      <div 
+        className="mouse-follower"
+        style={{
+          left: mousePosition.x,
+          top: mousePosition.y
+        }}
+      />
+      
       {/* Confetti effect for approved loans */}
       {showConfetti && (
         <div className="confetti-container">
@@ -397,7 +479,7 @@ function App() {
         </div>
       )}
       
-      <div className="container">
+      <div className="container" ref={containerRef}>
         <header className="app-header">
           <h1 className="animated-title">🏦 Loan Eligibility & Risk Predictor</h1>
           <p className="subtitle">AI-Powered Loan Assessment System with Advanced Analytics</p>
