@@ -2,5 +2,9 @@ services:
   - type: web
     name: loan-predictor-backend
     env: python
-    buildCommand: pip install -r loan-predictor/backend/requirements.txt
-    startCommand: gunicorn --chdir loan-predictor/backend --bind 0.0.0.0:$PORT app:app
+    rootDir: loan-predictor/backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.15
